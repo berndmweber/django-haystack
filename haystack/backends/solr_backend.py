@@ -119,7 +119,7 @@ class SearchBackend(BaseSearchBackend):
     @log_query
     def search(self, query_string, sort_by=None, start_offset=0, end_offset=None,
                fields='', highlight=False, facets=None, date_facets=None, query_facets=None,
-               narrow_queries=None, spelling_query=None,
+               narrow_queries=None, spelling_query=None, dismax=None,
                limit_to_registered_models=None, result_class=None, **kwargs):
         if len(query_string) == 0:
             return {
@@ -130,7 +130,11 @@ class SearchBackend(BaseSearchBackend):
         kwargs = {
             'fl': '* score',
         }
-
+        
+        if dismax:
+            kwargs['defType'] = "dismax"
+            kwargs['qf'] = " ".join(("%s^%f" % (key, float(val)) for key,val in dismax.iteritems()))
+        
         if fields:
             if isinstance(fields, (list, set)):
                 fields = " ".join(fields)
@@ -495,6 +499,9 @@ class SearchQuery(BaseSearchQuery):
 
         if spelling_query:
             search_kwargs['spelling_query'] = spelling_query
+
+        if self.dismax:
+            kwargs['dismax'] = self.dismax
 
         search_kwargs.update(kwargs)
 
