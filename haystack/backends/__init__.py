@@ -214,26 +214,40 @@ class SearchNode(tree.Node):
         children.
         """
         result = []
-
+        narrow = []
+        
         for child in self.children:
             if hasattr(child, 'as_query_string'):
-                result.append(child.as_query_string(query_fragment_callback))
+                cres, cnarrow = child.as_query_string(query_fragment_callback)
+                if cnarrow:
+                    narrow.append(cnarrow)
+                if cres:
+                    result.append(cres)
             else:
                 expression, value = child
                 field, filter_type = self.split_expression(expression)
-                result.append(query_fragment_callback(field, filter_type, value))
-
+                if expression == 'content':
+                    result.append(query_fragment_callback(field, filter_type, value))
+                else:
+                    narrow.append(query_fragment_callback(field, filter_type, value))
+        
         conn = ' %s ' % self.connector
         query_string = conn.join(result)
-
+        narrow_string = conn.join(narrow)
+        
         if query_string:
             if self.negated:
                 query_string = 'NOT (%s)' % query_string
             elif len(self.children) != 1:
                 query_string = '(%s)' % query_string
-
-        return query_string
-
+        if narrow_string:
+            if self.negated:
+                narrow_string = 'NOT (%s)' % narrow_string
+            elif len(self.children) != 1:
+                narrow_string = '(%s)' % narrow_string
+        
+        return query_string, narrow_string
+    
     def split_expression(self, expression):
         """Parses an expression and determines the field and filter type."""
         parts = expression.split(FILTER_SEPARATOR)
@@ -508,22 +522,11 @@ class BaseSearchQuery(object):
         Interprets the collected query metadata and builds the final query to
         be sent to the backend.
         """
-        query = self.query_filter.as_query_string(self.build_query_fragment)
+        final_query, narrow = self.query_filter.as_query_string(self.build_query_fragment)
 
-        if not query:
+        if not final_query:
             # Match all.
-            query = self.matching_all_fragment()
-
-        if len(self.models):
-            models = sorted(['%s:%s.%s' % (DJANGO_CT, model._meta.app_label, model._meta.module_name) for model in self.models])
-            models_clause = ' OR '.join(models)
-
-            if query != self.matching_all_fragment():
-                final_query = '(%s) AND (%s)' % (query, models_clause)
-            else:
-                final_query = models_clause
-        else:
-            final_query = query
+            final_query = self.matching_all_fragment()
 
         if self.boost:
             boost_list = []
@@ -532,9 +535,9 @@ class BaseSearchQuery(object):
                 boost_list.append(self.boost_fragment(boost_word, boost_value))
 
             final_query = "%s %s" % (final_query, " ".join(boost_list))
-
-        return final_query
-
+        
+        return final_query, narrow
+    
     def combine(self, rhs, connector=SQ.AND):
         if connector == SQ.AND:
             self.add_filter(rhs.query_filter)

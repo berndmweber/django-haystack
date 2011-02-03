@@ -118,9 +118,10 @@ class SearchBackend(BaseSearchBackend):
 
     @log_query
     def search(self, query_string, sort_by=None, start_offset=0, end_offset=None,
-               fields='', highlight=False, facets=None, date_facets=None, query_facets=None,
-               narrow_queries=None, spelling_query=None, dismax=None,
-               limit_to_registered_models=None, result_class=None, **kwargs):
+               fields='', highlight=False, facets=None, date_facets=None,
+               query_facets=None, narrow_queries=None, spelling_query=None,
+               dismax=None, models=None, limit_to_registered_models=None,
+               result_class=None, **kwargs):
         if len(query_string) == 0:
             return {
                 'results': [],
@@ -133,7 +134,7 @@ class SearchBackend(BaseSearchBackend):
         
         if dismax:
             kwargs['defType'] = "dismax"
-            kwargs['qf'] = " ".join(("%s^%f" % (key, float(val)) for key,val in dismax.iteritems()))
+            kwargs['qf'] = ["%s^%f" % (key, float(val)) for key,val in dismax.iteritems()]
         
         if fields:
             if isinstance(fields, (list, set)):
@@ -193,10 +194,18 @@ class SearchBackend(BaseSearchBackend):
             # with the current site.
             if narrow_queries is None:
                 narrow_queries = set()
+            else:
+                narrow_queries = set([narrow_queries])
+            
 
             registered_models = self.build_registered_models_list()
-
-            if len(registered_models) > 0:
+            
+            if len(models):
+                model_names = sorted(['%s.%s' % (m._meta.app_label, m._meta.module_name) for m in models])
+                models_clause = ' OR '.join(model_names)
+                narrow_queries.add('%s:(%s)' % (DJANGO_CT, models_clause))
+                
+            elif len(registered_models) > 0:
                 narrow_queries.add('%s:(%s)' % (DJANGO_CT, ' OR '.join(registered_models)))
 
         if narrow_queries is not None:
@@ -458,7 +467,7 @@ class SearchQuery(BaseSearchQuery):
 
     def run(self, spelling_query=None, **kwargs):
         """Builds and executes the query. Returns a list of search results."""
-        final_query = self.build_query()
+        final_query, narrow_queries = self.build_query()
 
         search_kwargs = {
             'start_offset': self.start_offset,
@@ -501,11 +510,12 @@ class SearchQuery(BaseSearchQuery):
             search_kwargs['spelling_query'] = spelling_query
 
         if self.dismax:
-            kwargs['dismax'] = self.dismax
+            search_kwargs['dismax'] = self.dismax
+        search_kwargs['models'] = self.models
 
         search_kwargs.update(kwargs)
-
-        results = self.backend.search(final_query, **search_kwargs)
+        results = self.backend.search(final_query, narrow_queries=narrow_queries, **kwargs)
+        
         self._results = results.get('results', [])
         self._hit_count = results.get('hits', 0)
         self._facet_counts = self.post_process_facets(results)
