@@ -133,7 +133,9 @@ class SearchBackend(BaseSearchBackend):
         }
         
         if dismax:
-            kwargs['defType'] = "dismax"
+            kwargs['defType'] = 'edismax' if getattr(
+                settings, 'HAYSTACK_SOLR_EXTENDED_DISMAX', False
+            ) else 'dismax'
             kwargs['qf'] = ["%s^%f" % (key, float(val)) for key,val in dismax.iteritems()]
         
         if fields:
