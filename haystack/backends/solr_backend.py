@@ -502,9 +502,6 @@ class SearchQuery(BaseSearchQuery):
         if self.query_facets:
             search_kwargs['query_facets'] = self.query_facets
 
-        if self.narrow_queries:
-            search_kwargs['narrow_queries'] = self.narrow_queries
-
         if self.fields:
             search_kwargs['fields'] = self.fields
 
