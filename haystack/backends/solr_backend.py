@@ -120,7 +120,7 @@ class SearchBackend(BaseSearchBackend):
     def search(self, query_string, sort_by=None, start_offset=0, end_offset=None,
                fields='', highlight=False, facets=None, date_facets=None,
                query_facets=None, narrow_queries=None, spelling_query=None,
-               dismax=None, models=None, limit_to_registered_models=None,
+               dismax=None, models=[], limit_to_registered_models=None,
                result_class=None, **kwargs):
         if len(query_string) == 0:
             return {
@@ -516,7 +516,7 @@ class SearchQuery(BaseSearchQuery):
         search_kwargs['models'] = self.models
 
         search_kwargs.update(kwargs)
-        results = self.backend.search(final_query, narrow_queries=narrow_queries, **kwargs)
+        results = self.backend.search(final_query, narrow_queries=narrow_queries, **search_kwargs)
         
         self._results = results.get('results', [])
         self._hit_count = results.get('hits', 0)
