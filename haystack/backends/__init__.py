@@ -214,7 +214,7 @@ class SearchNode(tree.Node):
         children.
         """
         result = []
-        narrow = []
+        narrow = set()
         
         for child in self.children:
             if hasattr(child, 'as_query_string'):
@@ -229,24 +229,24 @@ class SearchNode(tree.Node):
                 if expression == 'content':
                     result.append(query_fragment_callback(field, filter_type, value))
                 else:
-                    narrow.append(query_fragment_callback(field, filter_type, value))
+                    narrow.add(query_fragment_callback(field, filter_type, value))
         
         conn = ' %s ' % self.connector
         query_string = conn.join(result)
-        narrow_string = conn.join(narrow)
+        #narrow_string = conn.join(narrow)
         
         if query_string:
             if self.negated:
                 query_string = 'NOT (%s)' % query_string
             elif len(self.children) != 1:
                 query_string = '(%s)' % query_string
-        if narrow_string:
-            if self.negated:
-                narrow_string = 'NOT (%s)' % narrow_string
-            elif len(self.children) != 1:
-                narrow_string = '(%s)' % narrow_string
+        #if narrow_string:
+        #    if self.negated:
+        #        narrow_string = 'NOT (%s)' % narrow_string
+        #    elif len(self.children) != 1:
+        #        narrow_string = '(%s)' % narrow_string
         
-        return query_string, narrow_string
+        return query_string, narrow
     
     def split_expression(self, expression):
         """Parses an expression and determines the field and filter type."""

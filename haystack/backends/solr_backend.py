@@ -196,9 +196,6 @@ class SearchBackend(BaseSearchBackend):
             # with the current site.
             if narrow_queries is None:
                 narrow_queries = set()
-            else:
-                narrow_queries = set([narrow_queries])
-            
 
             registered_models = self.build_registered_models_list()
             
@@ -507,6 +504,9 @@ class SearchQuery(BaseSearchQuery):
 
         if spelling_query:
             search_kwargs['spelling_query'] = spelling_query
+
+        if self.narrow_queries:
+            narrow_queries = narrow_queries.union(self.narrow_queries)
 
         if self.dismax:
             search_kwargs['dismax'] = self.dismax
