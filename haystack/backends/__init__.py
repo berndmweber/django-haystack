@@ -317,6 +317,7 @@ class BaseSearchQuery(object):
         self._hit_count = None
         self._facet_counts = None
         self._spelling_suggestion = None
+        self._last_spelling_query = None
         self.result_class = SearchResult
 
         if backend is not None:
@@ -398,7 +399,6 @@ class BaseSearchQuery(object):
         """Builds and executes the query. Returns a list of search results."""
         final_query = self.build_query()
         search_kwargs = self.build_params(spelling_query=spelling_query)
-
         if kwargs:
             search_kwargs.update(kwargs)
 
@@ -407,6 +407,11 @@ class BaseSearchQuery(object):
         self._hit_count = results.get('hits', 0)
         self._facet_counts = self.post_process_facets(results)
         self._spelling_suggestion = results.get('spelling_suggestion', None)
+        if spelling_query:
+            self._last_spelling_query = spelling_query
+        else:
+            self._last_spelling_query = final_query
+
 
     def run_mlt(self, **kwargs):
         """
@@ -504,7 +509,7 @@ class BaseSearchQuery(object):
         If the query has not been run, this will execute the query and store
         the results.
         """
-        if self._spelling_suggestion is None:
+        if self._spelling_suggestion is None or preferred_query != self._last_spelling_query:
             self.run(spelling_query=preferred_query)
 
         return self._spelling_suggestion

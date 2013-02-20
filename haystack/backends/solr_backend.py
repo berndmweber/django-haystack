@@ -519,6 +519,10 @@ class SearchQuery(BaseSearchQuery):
         self._hit_count = results.get('hits', 0)
         self._facet_counts = self.post_process_facets(results)
         self._spelling_suggestion = results.get('spelling_suggestion', None)
+        if spelling_query:
+            self._last_spelling_query = spelling_query
+        else:
+            self._last_spelling_query = final_query
 
     def run_mlt(self):
         """Builds and executes the query. Returns a list of search results."""
