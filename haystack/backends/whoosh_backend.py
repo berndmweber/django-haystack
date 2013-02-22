@@ -70,7 +70,7 @@ class SearchBackend(BaseSearchBackend):
         '[', ']', '^', '"', '~', '*', '?', ':', '.',
     )
 
-    def __init__(self, site=None):
+    def __init__(self, site=None, path=None):
         super(SearchBackend, self).__init__(site)
         self.setup_complete = False
         self.use_file_storage = True
@@ -79,8 +79,11 @@ class SearchBackend(BaseSearchBackend):
         if getattr(settings, 'HAYSTACK_WHOOSH_STORAGE', 'file') != 'file':
             self.use_file_storage = False
 
-        if self.use_file_storage and not hasattr(settings, 'HAYSTACK_WHOOSH_PATH'):
+        if self.use_file_storage and not (hasattr(settings, 'HAYSTACK_WHOOSH_PATH') and not path):
             raise ImproperlyConfigured('You must specify a HAYSTACK_WHOOSH_PATH in your settings.')
+        if not path:
+            path = settings.HAYSTACK_WHOOSH_PATH
+        self.path = path
 
         self.log = logging.getLogger('haystack')
 
@@ -91,15 +94,15 @@ class SearchBackend(BaseSearchBackend):
         new_index = False
 
         # Make sure the index is there.
-        if self.use_file_storage and not os.path.exists(settings.HAYSTACK_WHOOSH_PATH):
-            os.makedirs(settings.HAYSTACK_WHOOSH_PATH)
+        if self.use_file_storage and not os.path.exists(self.path):
+            os.makedirs(self.path)
             new_index = True
 
-        if self.use_file_storage and not os.access(settings.HAYSTACK_WHOOSH_PATH, os.W_OK):
-            raise IOError("The path to your Whoosh index '%s' is not writable for the current user/group." % settings.HAYSTACK_WHOOSH_PATH)
+        if self.use_file_storage and not os.access(self.path, os.W_OK):
+            raise IOError("The path to your Whoosh index '%s' is not writable for the current user/group." % self.path)
 
         if self.use_file_storage:
-            self.storage = FileStorage(settings.HAYSTACK_WHOOSH_PATH)
+            self.storage = FileStorage(self.path)
         else:
             global LOCALS
 

@@ -38,14 +38,16 @@ class SearchBackend(BaseSearchBackend):
         '[', ']', '^', '"', '~', '*', '?', ':',
     )
 
-    def __init__(self, site=None):
+    def __init__(self, site=None, path=None):
         super(SearchBackend, self).__init__(site)
 
-        if not hasattr(settings, 'HAYSTACK_SOLR_URL'):
+        if not hasattr(settings, 'HAYSTACK_SOLR_URL') and not path:
             raise ImproperlyConfigured('You must specify a HAYSTACK_SOLR_URL in your settings.')
 
         timeout = getattr(settings, 'HAYSTACK_SOLR_TIMEOUT', 10)
-        self.conn = Solr(settings.HAYSTACK_SOLR_URL, timeout=timeout)
+        if not path:
+            path = settings.HAYSTACK_SOLR_URL
+        self.conn = Solr(path, timeout=timeout)
         self.log = logging.getLogger('haystack')
 
     def update(self, index, iterable, commit=True):

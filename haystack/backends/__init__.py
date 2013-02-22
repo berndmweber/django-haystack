@@ -82,7 +82,7 @@ class BaseSearchBackend(object):
     RESERVED_WORDS = []
     RESERVED_CHARACTERS = []
 
-    def __init__(self, site=None):
+    def __init__(self, site=None, path=None):
         if site is not None:
             self.site = site
         else:
