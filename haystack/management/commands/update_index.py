@@ -49,6 +49,11 @@ def worker(bits):
         do_remove(index, model, pks_seen, start, upper_bound, verbosity=verbosity)
 
 
+def get_backend(optional_path=None):
+    import haystack
+    backend = haystack.backend.SearchBackend(path=optional_path)
+    return backend
+
 def get_site(optional_site=None):
     # Cause the default site to load.
     from haystack import site
@@ -150,6 +155,9 @@ class Command(AppCommand):
             default=0, type='int', 
             help='Allows for the use multiple workers to parallelize indexing. Requires multiprocessing.'
         ),
+        make_option('-p', '--path', action='store', dest='path',
+            type='string', help="Override the settings provided path to the index"
+        ),
     )
     option_list = AppCommand.option_list + base_options
     
@@ -175,7 +183,8 @@ class Command(AppCommand):
         self.site = options.get('site')
         self.remove = options.get('remove', False)
         self.workers = int(options.get('workers', 0))
-        
+        self.path = options.get('path')
+
         if not apps:
             from django.db.models import get_app
             # Do all, in an INSTALLED_APPS sorted order.
@@ -197,6 +206,7 @@ class Command(AppCommand):
         from haystack.exceptions import NotRegistered
         
         site = get_site(self.site)
+        backend = get_backend(self.path)
         
         if self.workers > 0:
             import multiprocessing
@@ -204,6 +214,8 @@ class Command(AppCommand):
         for model in get_models(app):
             try:
                 index = site.get_index(model)
+                # Manually set the ``backend`` to the correct one.
+                index.backend = backend
                 # Manually set the ``site`` on the backend to the correct one.
                 index.backend.site = site
             except NotRegistered:
