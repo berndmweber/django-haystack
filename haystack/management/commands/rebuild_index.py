@@ -65,4 +65,4 @@ class Command(BaseCommand):
         )
         call_command('update_index', **options)
         sca.swap(core, new_core_name)
-        sca.unload(new_core_name, delete_data_dir=True, delete_instance_dir=True, delete_index=True)
+        sca.unload(new_core_name, delete_data_dir=True, delete_index=True)
