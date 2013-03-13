@@ -159,6 +159,10 @@ class CharField(SearchField):
         return unicode(value)
 
 
+class SpellingSuggestionField(CharField):
+    field_type = 'spelling_text'
+
+
 class NgramField(CharField):
     field_type = 'ngram'
     
