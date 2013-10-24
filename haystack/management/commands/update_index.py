@@ -2,6 +2,7 @@ import datetime
 import os
 import warnings
 from optparse import make_option
+from django import db
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management.base import AppCommand
@@ -28,7 +29,11 @@ def worker(bits):
         # out connections (via ``... = {}``) destroys in-memory DBs.
         if not 'sqlite3' in info['ENGINE']:
             try:
-                del(connections._connections[alias])
+                db.close_connection()
+                if isinstance(connections._connections, dict):
+                    del(connections._connections[alias])
+                else:
+                    delattr(connections._connections, alias)
             except KeyError:
                 pass
     
