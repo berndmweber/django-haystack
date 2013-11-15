@@ -16,9 +16,6 @@ class Command(BaseCommand):
         make_option('--use-temp', action='store_true', dest="use_temp",
             help='Build Index on temp core then swap',
         ),
-        make_option('--data-base-dir', action="store", type="string", dest="data_base_dir",
-            help='Defines core base data directory',
-        ),
     )
 
     option_list = (base_options +
@@ -57,14 +54,9 @@ class Command(BaseCommand):
         hash = hex(random.getrandbits(128))[2:10]
         new_core_name = '%s_%s' % (core, hash)
 
-        if options.get('data_base_dir'):
-            #this data dir is specific to our implementation...
-            sca.create(new_core_name, instance_dir=instance_dir,
-                data_dir='%s/%s/data' % (options.get('data_base_dir'), new_core_name))
-        else:
-            #this data dir is specific to our implementation...
-            sca.create(new_core_name, instance_dir=instance_dir,
-                data_dir='/var/lib/solr/%s/data' % new_core_name)
+        #this data dir is specific to our implementation...
+        sca.create(new_core_name, instance_dir=instance_dir,
+            data_dir='%s/%s/data' % (instance_dir, new_core_name))
 
         options['path'] = '%s://%s/solr/%s' % (
             bits.scheme,
